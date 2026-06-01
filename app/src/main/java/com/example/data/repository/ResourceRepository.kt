@@ -311,7 +311,82 @@ class ResourceRepository(
                 Course("CS-Y4S2-04", "Final Year Project II", "CoSc-4126", "AMIT-CS", 4, 2),
                 Course("CS-Y4S2-05", "Introduction to Data Mining and Data Warehousing", "CoSc-4112", "AMIT-CS", 4, 2),
                 Course("CS-Y4S2-06", "Introduction to Machine Learning (Elective II)", "CoSc-4114", "AMIT-CS", 4, 2),
-                Course("CS-Y4S2-07", "National Exit Exam", "Exit-01", "AMIT-CS", 4, 2)
+                Course("CS-Y4S2-07", "National Exit Exam", "Exit-01", "AMIT-CS", 4, 2),
+
+                // WRIE 2nd Year, 1st Semester
+                Course("WRIE-Y2S1-01", "Engineering Mechanics", "CEng-2035", "AWTI-WI", 2, 1),
+                Course("WRIE-Y2S1-02", "Technical Drawing", "MEng-2034", "AWTI-WI", 2, 1),
+                Course("WRIE-Y2S1-03", "Construction Materials and Equipment", "CEng-2081", "AWTI-WI", 2, 1),
+                Course("WRIE-Y2S1-04", "Engineering Geology", "Geol-2081", "AWTI-WI", 2, 1),
+                Course("WRIE-Y2S1-05", "Surveying I", "CEng-2051", "AWTI-WI", 2, 1),
+                Course("WRIE-Y2S1-06", "Probability and Statistics", "Stat-2091", "AWTI-WI", 2, 1),
+                Course("WRIE-Y2S1-07", "Applied Mathematics II", "Math-2043", "AWTI-WI", 2, 1),
+
+                // WRIE 2nd Year, 2nd Semester
+                Course("WRIE-Y2S2-01", "Surveying II", "CEng-2052", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-02", "Fluid Mechanics", "WRIE-2101", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-03", "Numerical Analysis", "Math-2094", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-04", "Introduction to Hydrology", "WRIE-2092", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-05", "Strength of Materials", "CEng-2061", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-06", "Soil Physics", "WRIE-2111", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-07", "Hydrological Measurements and Analysis", "WRIE-2093", "AWTI-WI", 2, 2),
+                Course("WRIE-Y2S2-08", "Building Construction", "CEng-2082", "AWTI-WI", 2, 2),
+
+                // WRIE 3rd Year, 1st Semester
+                Course("WRIE-Y3S1-01", "Groundwater Engineering", "WRIE-3096", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-02", "Surface Irrigation", "WRIE-3112", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-03", "Reinforced Concrete Design I", "CEng-3062", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-04", "Hydraulics", "WRIE-3102", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-05", "Engineering Hydrology", "WRIE-3095", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-06", "Soil Mechanics I", "CEng-3072", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-07", "Inclusiveness", "MCiE-3056", "AWTI-WI", 3, 1),
+                Course("WRIE-Y3S1-08", "Economics", "WRIE-3204", "AWTI-WI", 3, 1),
+
+                // WRIE 3rd Year, 2nd Semester
+                Course("WRIE-Y3S2-01", "Irrigation Structures I", "WRIE-3114", "AWTI-WI", 3, 2),
+                Course("WRIE-Y3S2-02", "Soil Mechanics II", "CEng-3073", "AWTI-WI", 3, 2),
+                Course("WRIE-Y3S2-03", "Pump Design and Installation", "WRIE-3121", "AWTI-WI", 3, 2),
+                Course("WRIE-Y3S2-04", "Reinforced Concrete Design II", "CEng-3063", "AWTI-WI", 3, 2),
+                Course("WRIE-Y3S2-05", "Pressurized Irrigation", "WRIE-3113", "AWTI-WI", 3, 2),
+                Course("WRIE-Y3S2-06", "Open Channel Hydraulics", "WRIE-3103", "AWTI-WI", 3, 2),
+                Course("WRIE-Y3S2-07", "Dam Engineering-I", "WRIE-3131", "AWTI-WI", 3, 2),
+
+                // WRIE 4th Year, 1st Semester
+                Course("WRIE-Y4S1-01", "Foundation Engineering", "CEng-4074", "AWTI-WI", 4, 1),
+                Course("WRIE-Y4S1-02", "Research Methods", "WRIE-4141", "AWTI-WI", 4, 1),
+                Course("WRIE-Y4S1-03", "Drainage Engineering", "WRIE-4116", "AWTI-WI", 4, 1),
+                Course("WRIE-Y4S1-04", "Water Supply and Sanitation Engineering", "WRIE-4122", "AWTI-WI", 4, 1),
+                Course("WRIE-Y4S1-05", "Irrigation Structures II", "WRIE-4115", "AWTI-WI", 4, 1),
+                Course("WRIE-Y4S1-06", "Software Application in WRIE", "WRIE-4161", "AWTI-WI", 4, 1),
+                Course("WRIE-Y4S1-07", "Dam Engineering II", "WRIE-4132", "AWTI-WI", 4, 1),
+
+                // WRIE 4th Year, 2nd Semester
+                Course("WRIE-Y4S2-01", "Holistic Exam", "WRIE-4151", "AWTI-WI", 4, 2),
+                Course("WRIE-Y4S2-02", "Internship Practice Company Evaluation", "WRIE-4152", "AWTI-WI", 4, 2),
+                Course("WRIE-Y4S2-03", "Internship Practice Report Evaluation", "WRIE-4153", "AWTI-WI", 4, 2),
+                Course("WRIE-Y4S2-04", "Internship Practice Presentation and Defense", "WRIE-4154", "AWTI-WI", 4, 2),
+
+                // WRIE 5th Year, 1st Semester
+                Course("WRIE-Y5S1-01", "Water Resources Planning & Management", "WRIE-5144", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-02", "GIS & Remote Sensing", "WRIE-5143", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-03", "Construction Planning and Management", "CEng-5172", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-04", "Contract, Specification and Quantity Surveying", "CEng-5171", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-05", "Engineering Economics", "CEng-5173", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-06", "River Engineering & Sediment Transport", "WRIE-5133", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-07", "Soil and Water Conservation Engineering", "WRIE-5142", "AWTI-WI", 5, 1),
+                Course("WRIE-Y5S1-08", "Irrigation Water Management", "WRIE-5117", "AWTI-WI", 5, 1),
+
+                // WRIE 5th Year, 2nd Semester
+                Course("WRIE-Y5S2-01", "Global Trends", "WRIE-5162", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-02", "Final Year Project", "WRIE-5163", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-03", "Environmental Impact Assessment", "WRIE-5146", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-04", "Watershed Management and Modeling", "WRIE-5147", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-05", "Principles of Hydropower & Alternate Energy sources", "WRIE-5134", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-06", "Road Engineering", "CEng-5075", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-07", "Water Law and Hydro Politics", "WRIE-5145", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-08", "Educational Field Practice", "WRIE-5155", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-09", "History of Ethiopia and the Horn", "Hist-1023", "AWTI-WI", 5, 2),
+                Course("WRIE-Y5S2-10", "National Exit Exam", "Exit-01", "AWTI-WI", 5, 2)
             )
             courseDao.insertCourses(courses)
 

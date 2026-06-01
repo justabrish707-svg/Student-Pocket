@@ -11,7 +11,7 @@ import com.example.data.model.Resource
 
 @Database(
     entities = [Department::class, Course::class, Resource::class, Bookmark::class],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class LocalDatabase : RoomDatabase() {
