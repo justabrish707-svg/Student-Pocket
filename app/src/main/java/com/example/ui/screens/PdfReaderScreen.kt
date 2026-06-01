@@ -42,7 +42,14 @@ fun PdfReaderScreen(
     val bookmarks by viewModel.activeResourceBookmarks.collectAsState()
     val context = LocalContext.current
 
-    val resource = activeRes ?: return
+    // Retain last non-null resource during exit animations to prevent crashing
+    val safeResource = remember { mutableStateOf(activeRes) }
+    if (activeRes != null) {
+        safeResource.value = activeRes
+    }
+    val resource = safeResource.value ?: Resource(
+        id = "dummy", courseId = "", title = "", type = "Lecture Notes", fileSize = "", description = ""
+    )
 
     var currentPage by remember(resource.id) { mutableStateOf(resource.lastReadPage) }
     var zoomScale by remember(resource.id) { mutableStateOf(1.0f) }

@@ -79,7 +79,7 @@ class ResourceRepository(
         // Verify if database is empty by reading the first item array of departments
         val currentDepts = departmentDao.getAllDepartments().first()
         if (currentDepts.isEmpty()) {
-        val depts = listOf(
+            val depts = listOf(
                 // 1) Arba Minch Water Technology Institute
                 Department("AWTI-HW", "Hydraulic & Water Resources Eng.", "AWTI-HW", "Hydrological cycles, open channel flows, and water engineering structures.", 5, "Water Technology Institute"),
                 Department("AWTI-WS", "Water Supply & Environmental Eng.", "AWTI-WS", "Water treatment processes, pipe networks, and sanitary engineering.", 5, "Water Technology Institute"),
@@ -178,8 +178,7 @@ class ResourceRepository(
 
                 // 11) Freshman Program
                 Department("FRESH-NS", "Natural Science (Freshman)", "FRESH-NS", "Common first-year courses for natural science, technology, and health streams.", 1, "Freshman Program"),
-                Department("FRESH-SS", "Social Science (Freshman)", "FRESH-SS", "Common first-year courses for social science, business, and humanities streams.", 1, "Freshman Program"),
-                Department("PRE-ENG", "Pre-Engineering", "PRE-ENG", "Foundational mathematics and introductory programming for engineering tracks.", 1, "Freshman Program")
+                Department("FRESH-SS", "Social Science (Freshman)", "FRESH-SS", "Common first-year courses for social science, business, and humanities streams.", 1, "Freshman Program")
             )
             departmentDao.insertDepartments(depts)
 
@@ -190,11 +189,6 @@ class ResourceRepository(
                 Course("FRESH-NS-112", "Calculus I for Computing", "Math 1011", "FRESH-NS", 1, 1),
                 Course("FRESH-NS-113", "General Physics", "Phys 1011", "FRESH-NS", 1, 1),
                 Course("FRESH-NS-114", "General Chemistry", "Chem 1011", "FRESH-NS", 1, 1),
-
-                // Semester 2 (pre-Engineering)
-                Course("FRESH-NS-121", "Fundamentals of Programming II", "CoSc 1102", "FRESH-NS", 1, 2),
-                Course("FRESH-NS-EG1", "Engineering Mechanics", "CEng 1012", "FRESH-NS", 1, 2),
-                Course("FRESH-NS-EG2", "Technical Drawing", "MEng 1012", "FRESH-NS", 1, 2),
 
                 // Semester 3 (Other natural sciences)
                 Course("FRESH-NS-ON1", "General Biology", "Biol 1011", "FRESH-NS", 1, 3),
@@ -257,15 +251,15 @@ class ResourceRepository(
                 Course("CS-Y1S1-07", "Geography of Ethiopia and the Horn", "GeES-1011", "FRESH-NS", 1, 1),
 
                 // 1st Year, 2nd Semester (Pre-Engineering)
-                Course("CS-Y1S2-01", "Communicative English Language Skills II", "FLEn-1012", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-02", "Social Anthropology", "Anth-1012", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-03", "Applied Mathematics I", "Math-1041", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-04", "Introduction to Emerging Technologies", "EmTe-1012", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-05", "Moral and Civic Education", "MCiE-1012", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-06", "Computer programming", "CoSc-1012", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-07", "Economics", "Econ-1011", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-08", "History of Ethiopia and the Horn", "Hist-1012", "PRE-ENG", 1, 2),
-                Course("CS-Y1S2-09", "Entrepreneurship", "MGMT-1012", "PRE-ENG", 1, 2),
+                Course("CS-Y1S2-01", "Communicative English Language Skills II", "FLEn-1012", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-02", "Social Anthropology", "Anth-1012", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-03", "Applied Mathematics I", "Math-1041", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-04", "Introduction to Emerging Technologies", "EmTe-1012", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-05", "Moral and Civic Education", "MCiE-1012", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-06", "Computer programming", "CoSc-1012", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-07", "Economics", "Econ-1011", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-08", "History of Ethiopia and the Horn", "Hist-1012", "FRESH-NS", 1, 2),
+                Course("CS-Y1S2-09", "Entrepreneurship", "MGMT-1012", "FRESH-NS", 1, 2),
 
                 // 2nd Year, 1st Semester
                 Course("CS-Y2S1-01", "Digital Logic Design", "EENG-2041", "AMIT-CS", 2, 1),
@@ -337,16 +331,6 @@ class ResourceRepository(
 
                 // General Chemistry (FRESH-NS-114)
                 Resource("RES_NS114_01", "FRESH-NS-114", "Chemical Bonding & Stoichiometry Study Guide", "Handouts", "2.7 MB", "Covers covalent and ionic properties, molecular geometry shapes (VSEPR theory), gas laws, and balancing redox balance equations."),
-
-                // Fundamentals of Programming II (FRESH-NS-121)
-                Resource("RES_NS121_01", "FRESH-NS-121", "Recursive Algorithms & Pointers Guide in C++", "Lecture Notes", "1.9 MB", "A detailed guide on dereferencing pointers, dynamic custom memory allocations, and implementation of recursive algorithms."),
-
-                // Engineering Mechanics (FRESH-NS-EG1)
-                Resource("RES_NSEG1_01", "FRESH-NS-EG1", "Statics of Particles & Rigid Bodies Modules", "Lecture Notes", "4.2 MB", "Vector mechanics notes analyzing structural frames, equilibrium of rigid mechanisms, friction, centroid positions, and moments of inertia."),
-                Resource("RES_NSEG1_02", "FRESH-NS-EG1", "Truss Analysis Worked Examples Assignment", "Assignments", "1.5 MB", "Detailed manual using joint analysis and section isolation methods on diverse bridge and load-bearing trusses."),
-
-                // Technical Drawing (FRESH-NS-EG2)
-                Resource("RES_NSEG2_01", "FRESH-NS-EG2", "Orthographic Projection & Lettering Workbook", "Handouts", "5.1 MB", "Manual on descriptive isometric drawings, standard line types, scales rules, auxiliary plane views, and sectional drawings guidelines."),
 
                 // General Biology (FRESH-NS-ON1)
                 Resource("RES_NSON1_01", "FRESH-NS-ON1", "Cellular Biology and Genetics Lecture Notes", "Lecture Notes", "3.8 MB", "Examines plant and animal organelle structures, cellular respiration cycles, DNA replication steps, and Mendelian inheritance patterns."),
