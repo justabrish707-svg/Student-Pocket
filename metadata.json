@@ -1,0 +1,6 @@
+{
+  "name": "Student Pocket",
+  "description": "An offline-first academic resource and productivity app for university students.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
