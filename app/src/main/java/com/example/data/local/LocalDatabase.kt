@@ -11,7 +11,7 @@ import com.example.data.model.Resource
 
 @Database(
     entities = [Department::class, Course::class, Resource::class, Bookmark::class],
-    version = 11,
+    version = 13,
     exportSchema = false
 )
 abstract class LocalDatabase : RoomDatabase() {
@@ -30,7 +30,7 @@ abstract class LocalDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     LocalDatabase::class.java,
-                    "student_pocket_db_v8"
+                    "student_pocket_db_v13"
                 )
                 .fallbackToDestructiveMigration()
                 .build()

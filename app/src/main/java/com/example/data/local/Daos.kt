@@ -30,7 +30,10 @@ interface CourseDao {
 
 @Dao
 interface ResourceDao {
-    @Query("SELECT * FROM resources WHERE courseId = :courseId ORDER BY title ASC")
+    @Query("SELECT * FROM resources")
+    fun getAllResources(): Flow<List<Resource>>
+
+    @Query("SELECT * FROM resources WHERE courseId = :courseId AND isPendingApproval = 0 ORDER BY title ASC")
     fun getResourcesForCourse(courseId: String): Flow<List<Resource>>
 
     @Query("SELECT * FROM resources WHERE id = :id")
@@ -39,21 +42,30 @@ interface ResourceDao {
     @Query("SELECT * FROM resources WHERE id = :id")
     suspend fun getResourceByIdDirect(id: String): Resource?
 
-    @Query("SELECT * FROM resources WHERE isFavorite = 1")
+    @Query("SELECT * FROM resources WHERE isFavorite = 1 AND isPendingApproval = 0")
     fun getFavoriteResources(): Flow<List<Resource>>
 
-    @Query("SELECT * FROM resources WHERE isDownloaded = 1")
+    @Query("SELECT * FROM resources WHERE isDownloaded = 1 AND isPendingApproval = 0")
     fun getDownloadedResources(): Flow<List<Resource>>
 
     @Query("""
         SELECT resources.* FROM resources 
         INNER JOIN courses ON resources.courseId = courses.id 
-        WHERE (resources.title LIKE '%' || :query || '%' 
+        WHERE (resources.isPendingApproval = 0) AND (resources.title LIKE '%' || :query || '%' 
                OR courses.name LIKE '%' || :query || '%' 
                OR courses.code LIKE '%' || :query || '%' 
                OR resources.type LIKE '%' || :query || '%')
     """)
     fun searchResources(query: String): Flow<List<Resource>>
+
+    @Query("SELECT * FROM resources WHERE isPendingApproval = 1 ORDER BY title ASC")
+    fun getPendingResources(): Flow<List<Resource>>
+
+    @Query("UPDATE resources SET isPendingApproval = 0 WHERE id = :id")
+    suspend fun approveResource(id: String)
+
+    @Query("DELETE FROM resources WHERE id = :id")
+    suspend fun rejectResource(id: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertResources(resources: List<Resource>)

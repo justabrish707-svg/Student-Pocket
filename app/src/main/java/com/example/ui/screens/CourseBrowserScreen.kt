@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,14 +22,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.net.Uri
+import android.provider.OpenableColumns
+import java.io.File
+import java.io.FileOutputStream
 import com.example.data.model.Course
 import com.example.data.model.Resource
 import com.example.ui.viewmodel.PocketViewModel
+
+data class AttachedMaterial(
+    val uri: Uri,
+    val name: String,
+    val size: String,
+    val localPath: String,
+    val title: String,
+    val type: String
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +56,7 @@ fun CourseBrowserScreen(
     val selectedYear by viewModel.selectedYear.collectAsState()
     val selectedSemester by viewModel.selectedSemester.collectAsState()
     val coursesList by viewModel.coursesList.collectAsState()
+    val courseProgressMap by viewModel.courseProgress.collectAsState()
     val selectedCourse by viewModel.selectedCourse.collectAsState()
     val courseResources by viewModel.courseResources.collectAsState()
     val activeDownloads by viewModel.activeDownloads.collectAsState()
@@ -50,6 +67,90 @@ fun CourseBrowserScreen(
 
     var showAddCourseDialog by remember { mutableStateOf(false) }
     var showAddMaterialDialog by remember { mutableStateOf(false) }
+    var showSuccessUploadDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val contentResolver = context.contentResolver
+
+    var contributorName by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var isDescError by remember { mutableStateOf(false) }
+    var selectedCommonType by remember { mutableStateOf("Lecture Notes") }
+
+    var attachedMaterials by remember { mutableStateOf<List<AttachedMaterial>>(emptyList()) }
+    var uploadListErrorMsg by remember { mutableStateOf<String?>(null) }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri>? ->
+        if (uris != null && uris.isNotEmpty()) {
+            uploadListErrorMsg = null
+            val newList = attachedMaterials.toMutableList()
+            for (uri in uris) {
+                var displayName = "Attached Material"
+                var sizeInBytes: Long = 0
+                try {
+                    contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                        if (cursor.moveToFirst()) {
+                            if (nameIndex != -1) displayName = cursor.getString(nameIndex)
+                            if (sizeIndex != -1) sizeInBytes = cursor.getLong(sizeIndex)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                val sizeStr = if (sizeInBytes > 0) {
+                    String.format("%.1f MB", sizeInBytes / (1024.0 * 1024.0))
+                } else {
+                    String.format("%.1f MB", 1.0 + Math.random() * 4)
+                }
+
+                val ext = displayName.substringAfterLast(".").lowercase()
+                val inferredType = if (ext == "pdf") "Lecture Notes" else "Lecture Notes"
+
+                // Save file securely to custom materials folder
+                try {
+                    val fileNameUnique = "file_${System.currentTimeMillis()}_${(100..999).random()}_$displayName"
+                    val destFolder = File(context.filesDir, "custom_materials")
+                    destFolder.mkdirs()
+                    val destFile = File(destFolder, fileNameUnique)
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        FileOutputStream(destFile).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    newList.add(
+                        AttachedMaterial(
+                            uri = uri,
+                            name = displayName,
+                            size = sizeStr,
+                            localPath = destFile.absolutePath,
+                            title = displayName.substringBeforeLast("."),
+                            type = inferredType
+                        )
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            attachedMaterials = newList
+        }
+    }
+
+    // Reset contribution form states when launched
+    LaunchedEffect(showAddMaterialDialog) {
+        if (showAddMaterialDialog) {
+            contributorName = ""
+            description = ""
+            isDescError = false
+            selectedCommonType = "Lecture Notes"
+            attachedMaterials = emptyList()
+            uploadListErrorMsg = null
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -241,13 +342,56 @@ fun CourseBrowserScreen(
             if (selectedCourse == null) {
                 // List of courses
                 Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-                    Text(
-                        text = "Courses Syllabus",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        modifier = Modifier.padding(vertical = 12.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Courses Syllabus",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                    }
+
+                    var searchFilterQuery by remember { mutableStateOf("") }
+
+                    OutlinedTextField(
+                        value = searchFilterQuery,
+                        onValueChange = { searchFilterQuery = it },
+                        placeholder = { Text("Search syllabus, codes...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchFilterQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchFilterQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .testTag("course_search_input"),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        )
                     )
+
+                    val filteredCourses = remember(coursesList, searchFilterQuery) {
+                        if (searchFilterQuery.isBlank()) {
+                            coursesList
+                        } else {
+                            coursesList.filter {
+                                it.name.contains(searchFilterQuery, ignoreCase = true) ||
+                                it.code.contains(searchFilterQuery, ignoreCase = true)
+                            }
+                        }
+                    }
                     
-                    if (coursesList.isEmpty()) {
+                    if (filteredCourses.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -263,7 +407,7 @@ fun CourseBrowserScreen(
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "No course handouts loaded for this semester.",
+                                    text = if (coursesList.isEmpty()) "No course handouts loaded for this semester." else "No courses found matching \"$searchFilterQuery\"",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                 )
@@ -274,7 +418,7 @@ fun CourseBrowserScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            items(coursesList) { course ->
+                            items(filteredCourses) { course ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -285,42 +429,67 @@ fun CourseBrowserScreen(
                                     ),
                                     border = CardDefaults.outlinedCardBorder()
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(40.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primaryContainer),
-                                            contentAlignment = Alignment.Center
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = course.code.take(2).uppercase(),
-                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = course.code.take(2).uppercase(),
+                                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = course.name,
+                                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Text(
+                                                    text = course.code,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                                )
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = "Open course details arrow",
+                                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                                             )
                                         }
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = course.name,
-                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+
+                                        // Progress indicator showing studies completed
+                                        val progress = courseProgressMap[course.id] ?: 0f
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            LinearProgressIndicator(
+                                                progress = progress,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(6.dp)
+                                                    .clip(RoundedCornerShape(3.dp)),
+                                                color = if (progress >= 1f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                                                trackColor = MaterialTheme.colorScheme.surfaceVariant
                                             )
                                             Text(
-                                                text = course.code,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                                text = "${(progress * 100).toInt()}% studied",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (progress >= 1f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                             )
                                         }
-                                        Icon(
-                                            imageVector = Icons.Default.ChevronRight,
-                                            contentDescription = "Open course details arrow",
-                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                                        )
                                     }
                                 }
                             }
@@ -371,13 +540,62 @@ fun CourseBrowserScreen(
                             )
                         }
                     } else {
-                        // Group resources by category
-                        val grouped = courseResources.groupBy { it.type }
+                        var searchResourceQuery by remember { mutableStateOf("") }
                         
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
+                        OutlinedTextField(
+                            value = searchResourceQuery,
+                            onValueChange = { searchResourceQuery = it },
+                            placeholder = { Text("Search materials by title or category...") },
+                            leadingIcon = { Icon(Icons.Default.FilterList, contentDescription = null) },
+                            trailingIcon = {
+                                if (searchResourceQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchResourceQuery = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear space")
+                                    }
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .testTag("resource_search_input"),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                            )
+                        )
+
+                        val filteredResources = remember(courseResources, searchResourceQuery) {
+                            if (searchResourceQuery.isBlank()) {
+                                courseResources
+                            } else {
+                                courseResources.filter {
+                                    it.title.contains(searchResourceQuery, ignoreCase = true) ||
+                                    it.type.contains(searchResourceQuery, ignoreCase = true)
+                                }
+                            }
+                        }
+
+                        if (filteredResources.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(top = 40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No course materials matching \"$searchResourceQuery\"",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                                )
+                            }
+                        } else {
+                            // Group resources by category
+                            val grouped = filteredResources.groupBy { it.type }
+                            
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
                             grouped.forEach { (category, items) ->
                                 item {
                                     Text(
@@ -422,7 +640,6 @@ fun CourseBrowserScreen(
                 }
             }
         }
-    }
 
     // Modern High Contrast Warn PopUp when attempting online interactions under severance simulation (Offline Lock)
     if (showOfflineErrorDialog) {
@@ -580,12 +797,6 @@ fun CourseBrowserScreen(
     }
 
     if (showAddMaterialDialog) {
-        var title by remember { mutableStateOf("") }
-        var selectedType by remember { mutableStateOf("Lecture Notes") }
-        var description by remember { mutableStateOf("") }
-        var isTitleError by remember { mutableStateOf(false) }
-        var isDescError by remember { mutableStateOf(false) }
-
         val types = listOf(
             "Lecture Notes",
             "Handouts",
@@ -616,47 +827,207 @@ fun CourseBrowserScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Adding custom study material under course \"${selectedCourse?.name ?: ""}\". Everything is kept fully offline.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = "Security Status indicator",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Admin approval is required before this file is made visible to other students.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
 
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = {
-                            title = it
-                            isTitleError = it.isBlank()
-                        },
-                        label = { Text("Resource Title / File Name") },
-                        placeholder = { Text("e.g. 2024 Lab Exercises Complete") },
-                        singleLine = true,
-                        isError = isTitleError,
-                        modifier = Modifier.fillMaxWidth().testTag("add_material_title_input"),
-                        supportingText = {
-                            if (isTitleError) {
-                                Text("Title is required", color = MaterialTheme.colorScheme.error)
+                    // --- Manual Material Selector Area ---
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (attachedMaterials.isEmpty()) {
+                            Text(
+                                text = "FILE ATTACHMENTS (DOCUMENTS/SLIDES)",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Button(
+                                onClick = { 
+                                    filePickerLauncher.launch(
+                                        arrayOf(
+                                            "application/pdf", 
+                                            "application/vnd.ms-powerpoint", 
+                                            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                        )
+                                    ) 
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("pick_file_button"),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AttachFile, 
+                                    contentDescription = "Attach File Logo",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Attach PDFs or PPT/PPTX documents")
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "ATTACHED DOCUMENTS (${attachedMaterials.size})",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                TextButton(
+                                    onClick = {
+                                        filePickerLauncher.launch(
+                                            arrayOf(
+                                                "application/pdf", 
+                                                "application/vnd.ms-powerpoint", 
+                                                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                            )
+                                        )
+                                    }
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Add files", modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Add More", fontSize = 12.sp)
+                                }
+                            }
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val materialIndices = attachedMaterials.indices
+                                for (index in materialIndices) {
+                                    val material = attachedMaterials[index]
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                                        ),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(10.dp)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                val isPdf = material.name.endsWith(".pdf", ignoreCase = true)
+                                                val fileIcon = if (isPdf) Icons.Default.PictureAsPdf else Icons.Default.PresentToAll
+                                                val fileIconColor = if (isPdf) Color(0xFFD32F2F) else Color(0xFFE65100)
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = fileIcon,
+                                                        contentDescription = "File Type icon",
+                                                        tint = fileIconColor,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = material.name,
+                                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = "${material.size} • Ready Offline",
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                                IconButton(
+                                                    onClick = {
+                                                        attachedMaterials = attachedMaterials.toMutableList().apply { removeAt(index) }
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Delete,
+                                                        contentDescription = "Remove document",
+                                                        tint = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            OutlinedTextField(
+                                                value = material.title,
+                                                onValueChange = { newTitle ->
+                                                    attachedMaterials = attachedMaterials.mapIndexed { idx, m ->
+                                                        if (idx == index) m.copy(title = newTitle) else m
+                                                    }
+                                                },
+                                                label = { Text("Study Resource Title", fontSize = 11.sp) },
+                                                placeholder = { Text("e.g. Lecture Notes Chapter ${index + 1}", fontSize = 11.sp) },
+                                                singleLine = true,
+                                                textStyle = MaterialTheme.typography.bodySmall,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
+
+                        if (uploadListErrorMsg != null) {
+                            Text(
+                                text = uploadListErrorMsg!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = contributorName,
+                        onValueChange = { contributorName = it },
+                        label = { Text("Your Name / Contributor") },
+                        placeholder = { Text("e.g. Abri (Optional)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("add_material_contributor_input")
                     )
 
                     // Material Type flow row of selectable chips
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "MATERIAL TYPE",
+                            text = "COMMON MATERIAL TYPE",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         
-                        types.chunked(2).forEach { chunk ->
+                        val chunkedTypes = types.chunked(2)
+                        for (chunk in chunkedTypes) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                chunk.forEach { type ->
+                                for (type in chunk) {
                                     FilterChip(
-                                        selected = selectedType == type,
-                                        onClick = { selectedType = type },
+                                        selected = selectedCommonType == type,
+                                        onClick = { selectedCommonType = type },
                                         label = { Text(type, fontSize = 11.sp) },
                                         colors = FilterChipDefaults.filterChipColors(
                                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -691,30 +1062,44 @@ fun CourseBrowserScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        isTitleError = title.isBlank()
                         isDescError = description.isBlank()
-                        if (!isTitleError && !isDescError) {
+                        val hasNoFiles = attachedMaterials.isEmpty()
+                        val hasNoTitles = attachedMaterials.any { it.title.isBlank() }
+
+                        if (hasNoFiles) {
+                            uploadListErrorMsg = "Please attach at least one PDF or PPT/PPTX document."
+                        } else if (hasNoTitles) {
+                            uploadListErrorMsg = "Each attached material requires a Study Title."
+                        } else if (isDescError) {
+                            uploadListErrorMsg = "Description is required."
+                        } else {
                             val activeCourseId = selectedCourse?.id ?: ""
-                            val sizeInMB = String.format("%.1f", (1.0 + (Math.random() * 4.0))) + " MB"
-                            val newResource = Resource(
-                                id = "res_${activeCourseId}_${System.currentTimeMillis()}",
-                                courseId = activeCourseId,
-                                title = title.trim(),
-                                type = selectedType,
-                                fileSize = sizeInMB,
-                                description = description.trim(),
-                                pageCount = (8..25).random(),
-                                isDownloaded = true, // instantly marked offline as contributed by user locally
-                                isFavorite = false,
-                                lastReadPage = 0
-                            )
-                            viewModel.insertCustomResource(newResource)
+                            for (material in attachedMaterials) {
+                                val isPdfFile = material.name.endsWith(".pdf", ignoreCase = true)
+                                val newResource = Resource(
+                                    id = "res_${activeCourseId}_${System.currentTimeMillis()}_${(1000..9999).random()}",
+                                    courseId = activeCourseId,
+                                    title = material.title.trim(),
+                                    type = selectedCommonType,
+                                    fileSize = material.size,
+                                    description = description.trim(),
+                                    pageCount = if (isPdfFile) 10 else (8..25).random(),
+                                    localPath = material.localPath,
+                                    isDownloaded = true, 
+                                    isFavorite = false,
+                                    lastReadPage = 0,
+                                    isPendingApproval = true,
+                                    contributorName = if (contributorName.isBlank()) "Anonymous" else contributorName.trim()
+                                )
+                                viewModel.insertCustomResource(newResource)
+                            }
                             showAddMaterialDialog = false
+                            showSuccessUploadDialog = true
                         }
                     },
                     modifier = Modifier.testTag("confirm_add_material_btn")
                 ) {
-                    Text("Add Material")
+                    Text("Upload for Review")
                 }
             },
             dismissButton = {
@@ -722,6 +1107,38 @@ fun CourseBrowserScreen(
                     onClick = { showAddMaterialDialog = false }
                 ) {
                     Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showSuccessUploadDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuccessUploadDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Success",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Upload Successful!",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Text(
+                    text = "Your contributed material was successfully uploaded to the database in a 'Pending Approval' state.\n\nTo review and approve it so it gets posted for other students, toggle 'Admin Mode' in the Explore Top Bar (Explore Tab) and look at the Admin Review Desk!"
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showSuccessUploadDialog = false }
+                ) {
+                    Text("OK, Got It!")
                 }
             }
         )

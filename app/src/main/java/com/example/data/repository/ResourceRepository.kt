@@ -21,6 +21,9 @@ class ResourceRepository(
     val allDepartments: Flow<List<Department>> = departmentDao.getAllDepartments()
     val favoriteResources: Flow<List<Resource>> = resourceDao.getFavoriteResources()
     val offlineResources: Flow<List<Resource>> = resourceDao.getDownloadedResources()
+    val pendingResources: Flow<List<Resource>> = resourceDao.getPendingResources()
+
+    fun getAllResources(): Flow<List<Resource>> = resourceDao.getAllResources()
 
     fun getCourses(deptId: String, year: Int, semester: Int): Flow<List<Course>> =
         courseDao.getCourses(deptId, year, semester)
@@ -420,6 +423,11 @@ class ResourceRepository(
                 // General Psychology (FRESH-SS-112)
                 Resource("RES_SS112_01", "FRESH-SS-112", "Introduction to Psychology Readings", "Handouts", "1.6 MB", "Selected readings on biological basis of behavior, sensory processes, learning theories, and human memory constructs."),
 
+                // Discrete Mathematics & Combinatorics (CS-Y2S2-04)
+                Resource("RES_MATH2052_01", "CS-Y2S2-04", "Discrete Mathematics Group Assignment", "Assignments", "2.4 MB", "Official AMU group assignment covering Planar Graphs (Euler's), Graph Coloring (Welsh-Powell), Hamiltonian/Eulerian paths, and C++ adjacency matrix program.", pageCount = 10),
+                Resource("RES_MATH2052_02", "CS-Y2S2-04", "Intro to Graph Theory Handouts", "Handouts", "1.7 MB", "Fundamental concepts on planar simple graphs, bipartite representations, and graph boundary regions.", pageCount = 12),
+                Resource("RES_MATH2052_03", "CS-Y2S2-04", "Discrete Math Past Midterm Exam - 2025", "Past Exams", "1.5 MB", "Evaluation of basic predicate calculus, matrix relations, mathematical induction proofs, and Euler circuits.", pageCount = 8),
+
                 // Data Structures & Algorithms (CS-Y2S2-05)
                 Resource("RES_CS211_01", "CS-Y2S2-05", "Singly Linked List Manipulation Guide", "Lecture Notes", "2.5 MB", "Node representations, insertion/deletion pointer swapping code templates, and big-O performance analysis."),
                 Resource("RES_CS211_02", "CS-Y2S2-05", "Lab Manual 2: Circular Queues with Ring Buffers", "Lab Reports", "1.9 MB", "C++ templates outlining ring-buffer logic, index wrapping (head/tail indices), and exception checks for overflow/underflow."),
@@ -476,6 +484,14 @@ class ResourceRepository(
 
     suspend fun addCustomResource(resource: Resource) {
         resourceDao.insertResources(listOf(resource))
+    }
+
+    suspend fun approveResource(id: String) {
+        resourceDao.approveResource(id)
+    }
+
+    suspend fun rejectResource(id: String) {
+        resourceDao.rejectResource(id)
     }
 
     suspend fun addCustomCourse(course: Course) {

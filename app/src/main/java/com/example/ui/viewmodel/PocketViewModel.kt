@@ -30,6 +30,13 @@ class PocketViewModel(
     val offlineResources: StateFlow<List<Resource>> = repository.offlineResources
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val pendingResources: StateFlow<List<Resource>> = repository.pendingResources
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val isAdminMode = MutableStateFlow(false)
+    val adminUserEmail = MutableStateFlow<String?>(null)
+    val adminUserName = MutableStateFlow<String?>(null)
+
     // Browser navigation states
     val selectedDept = MutableStateFlow<Department?>(null)
     val selectedYear = MutableStateFlow(1)      // Year 1-4/5
@@ -42,6 +49,22 @@ class PocketViewModel(
 
     private val _courseResources = MutableStateFlow<List<Resource>>(emptyList())
     val courseResources = _courseResources.asStateFlow()
+
+    // Offline synchronization and course progress tracking configurations
+    val isAutoSyncEnabled = MutableStateFlow(false)
+
+    val courseProgress: StateFlow<Map<String, Float>> = repository.getAllResources()
+        .map { resources ->
+            resources.groupBy { it.courseId }
+                .mapValues { (_, resList) ->
+                    val total = resList.size
+                    if (total == 0) 0f else {
+                        val studied = resList.count { it.lastReadPage > 0 }
+                        studied.toFloat() / total
+                    }
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     // Offline simulation mode
     val isInSimulationOfflineMode = MutableStateFlow(false)
@@ -120,6 +143,19 @@ class PocketViewModel(
                     _activeResourceBookmarks.value = emptyList()
                 }
             }
+        }
+
+        // Automatic synchronization of uploaded materials for offline-first usage
+        viewModelScope.launch {
+            combine(isAutoSyncEnabled, selectedCourse, courseResources, isInSimulationOfflineMode) { autoSync, course, resources, offline ->
+                if (autoSync && course != null && !offline) {
+                    resources.forEach { res ->
+                        if (!res.isDownloaded && !res.isPendingApproval && !_activeDownloads.value.containsKey(res.id)) {
+                            downloadResource(res)
+                        }
+                    }
+                }
+            }.collect()
         }
     }
 
@@ -255,6 +291,46 @@ class PocketViewModel(
     fun purgeOfflineResource(resource: Resource) {
         viewModelScope.launch {
             repository.purgeResource(resource.id)
+        }
+    }
+
+    fun setAdminMode(enabled: Boolean) {
+        if (!enabled) {
+            isAdminMode.value = false
+        } else {
+            if (adminUserEmail.value?.lowercase() == "justabrish707@gmail.com") {
+                isAdminMode.value = true
+            }
+        }
+    }
+
+    fun signInAdmin(email: String, name: String): Boolean {
+        adminUserEmail.value = email.trim()
+        adminUserName.value = name.trim()
+        if (email.trim().lowercase() == "justabrish707@gmail.com") {
+            isAdminMode.value = true
+            return true
+        } else {
+            isAdminMode.value = false
+            return false
+        }
+    }
+
+    fun signOutAdmin() {
+        adminUserEmail.value = null
+        adminUserName.value = null
+        isAdminMode.value = false
+    }
+
+    fun approveResource(resourceId: String) {
+        viewModelScope.launch {
+            repository.approveResource(resourceId)
+        }
+    }
+
+    fun rejectResource(resourceId: String) {
+        viewModelScope.launch {
+            repository.rejectResource(resourceId)
         }
     }
 

@@ -36,7 +36,9 @@ data class Resource(
     val isDownloaded: Boolean = false,
     val isFavorite: Boolean = false,
     val lastReadPage: Int = 0,
-    val downloadProgress: Int = 0 // for UI animating progress (0 - 100)
+    val downloadProgress: Int = 0, // for UI animating progress (0 - 100)
+    val isPendingApproval: Boolean = false,
+    val contributorName: String? = null
 )
 
 @Entity(tableName = "bookmarks")
